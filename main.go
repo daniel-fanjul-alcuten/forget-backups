@@ -22,7 +22,10 @@ func parse(arg string) (f file, err error) {
 	// remove path elements
 	str := filepath.Base(arg)
 	// remove extension
-	str = str[:len(str)-len(filepath.Ext(str))]
+	i := strings.Index(str, ".")
+	if i != -1 {
+		str = str[:i]
+	}
 
 	// parse for $(date +%Y%m%d%H%M%S)
 	var t time.Time

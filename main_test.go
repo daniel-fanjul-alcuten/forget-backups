@@ -38,6 +38,12 @@ func TestParse(t *testing.T) {
 	} else if s := v.time.Format(format); s != "12340102030405" {
 		t.Error(s)
 	}
+
+	if v, err := parse("foo/12340102030405.bundle.git"); err != nil {
+		t.Error(err)
+	} else if s := v.time.Format(format); s != "12340102030405" {
+		t.Error(s)
+	}
 }
 
 func TestMomentByHour(t *testing.T) {
