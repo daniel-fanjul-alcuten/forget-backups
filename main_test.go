@@ -46,64 +46,87 @@ func TestParse(t *testing.T) {
 	}
 }
 
+func TestMomentByMinute(t *testing.T) {
+
+	m := moment{2007, 5, 18, 19, 20}
+	if n := m.byMinute(); n != (moment{2007, 5, 18, 19, 19}) {
+		t.Error(n)
+	}
+
+	m = moment{2007, 5, 18, 19, 0}
+	if n := m.byMinute(); n != (moment{2007, 5, 18, 18, 59}) {
+		t.Error(n)
+	}
+
+	m = moment{2007, 5, 1, 0, 0}
+	if n := m.byMinute(); n != (moment{2007, 4, 30, 23, 59}) {
+		t.Error(n)
+	}
+
+	m = moment{2007, 1, 1, 0, 0}
+	if n := m.byMinute(); n != (moment{2006, 12, 31, 23, 59}) {
+		t.Error(n)
+	}
+}
+
 func TestMomentByHour(t *testing.T) {
 
-	m := moment{2007, 5, 18, 19}
-	if n := m.byHour(); n != (moment{2007, 5, 18, 18}) {
+	m := moment{2007, 5, 18, 19, 20}
+	if n := m.byHour(); n != (moment{2007, 5, 18, 18, 20}) {
 		t.Error(n)
 	}
 
-	m = moment{2007, 5, 18, 0}
-	if n := m.byHour(); n != (moment{2007, 5, 17, 23}) {
+	m = moment{2007, 5, 18, 0, 20}
+	if n := m.byHour(); n != (moment{2007, 5, 17, 23, 20}) {
 		t.Error(n)
 	}
 
-	m = moment{2007, 5, 1, 0}
-	if n := m.byHour(); n != (moment{2007, 4, 30, 23}) {
+	m = moment{2007, 5, 1, 0, 20}
+	if n := m.byHour(); n != (moment{2007, 4, 30, 23, 20}) {
 		t.Error(n)
 	}
 
-	m = moment{2007, 1, 1, 0}
-	if n := m.byHour(); n != (moment{2006, 12, 31, 23}) {
+	m = moment{2007, 1, 1, 0, 20}
+	if n := m.byHour(); n != (moment{2006, 12, 31, 23, 20}) {
 		t.Error(n)
 	}
 }
 
 func TestMomentByDay(t *testing.T) {
 
-	m := moment{2007, 5, 18, 19}
-	if n := m.byDay(); n != (moment{2007, 5, 17, 19}) {
+	m := moment{2007, 5, 18, 19, 20}
+	if n := m.byDay(); n != (moment{2007, 5, 17, 19, 20}) {
 		t.Error(n)
 	}
 
-	m = moment{2007, 5, 1, 19}
-	if n := m.byDay(); n != (moment{2007, 4, 30, 19}) {
+	m = moment{2007, 5, 1, 19, 20}
+	if n := m.byDay(); n != (moment{2007, 4, 30, 19, 20}) {
 		t.Error(n)
 	}
 
-	m = moment{2007, 1, 1, 19}
-	if n := m.byDay(); n != (moment{2006, 12, 31, 19}) {
+	m = moment{2007, 1, 1, 19, 20}
+	if n := m.byDay(); n != (moment{2006, 12, 31, 19, 20}) {
 		t.Error(n)
 	}
 }
 
 func TestMomentByMonth(t *testing.T) {
 
-	m := moment{2007, 5, 18, 19}
-	if n := m.byMonth(); n != (moment{2007, 4, 18, 19}) {
+	m := moment{2007, 5, 18, 19, 20}
+	if n := m.byMonth(); n != (moment{2007, 4, 18, 19, 20}) {
 		t.Error(n)
 	}
 
-	m = moment{2007, 1, 18, 19}
-	if n := m.byMonth(); n != (moment{2006, 12, 18, 19}) {
+	m = moment{2007, 1, 18, 19, 20}
+	if n := m.byMonth(); n != (moment{2006, 12, 18, 19, 20}) {
 		t.Error(n)
 	}
 }
 
 func TestMomentByYear(t *testing.T) {
 
-	m := moment{2007, 1, 18, 19}
-	if n := m.byYear(); n != (moment{2006, 1, 18, 19}) {
+	m := moment{2007, 1, 18, 19, 20}
+	if n := m.byYear(); n != (moment{2006, 1, 18, 19, 20}) {
 		t.Error(n)
 	}
 }
@@ -206,15 +229,17 @@ func TestSelectFiles_Short(t *testing.T) {
 
 func TestSelectFiles_Long(t *testing.T) {
 
-	const nfiles = 35064
+	const nfiles = 315576
 	fs := make(filesort, 0, nfiles)
 	for year := 2007; year < 2007+4; year++ {
 		for month := time.January; month < 13; month++ {
 			nd := numDaysInMonth(year, month)
 			for day := 1; day <= nd; day++ {
 				for hour := 0; hour < 24; hour++ {
-					name := fmt.Sprintf("%04d/%02d/%02d/%02d", year, int(month), day, hour)
-					fs = append(fs, file{name, time.Date(year, month, day, hour, 1, 2, 3, time.UTC)})
+					for minute := 0; minute < 60; minute += 7 {
+						name := fmt.Sprintf("%04d/%02d/%02d/%02d/%02d", year, int(month), day, hour, minute)
+						fs = append(fs, file{name, time.Date(year, month, day, hour, minute, 2, 3, time.UTC)})
+					}
 				}
 			}
 		}
@@ -224,8 +249,9 @@ func TestSelectFiles_Long(t *testing.T) {
 	}
 	sort.Sort(&fs)
 
-	const sfiles = 50
+	const sfiles = 59
 	s := make(map[string]file, sfiles)
+	selectFiles(s, fs, minutely{}, 70)
 	selectFiles(s, fs, hourly{}, 28)
 	selectFiles(s, fs, daily{}, 8)
 	selectFiles(s, fs, weekly{}, 5)
@@ -243,60 +269,70 @@ func TestSelectFiles_Long(t *testing.T) {
 
 	expected := [sfiles]string{
 		// yearly
-		"2008/12/31/23",
+		"2008/12/31/23/56",
 		// monthly
-		"2009/12/31/23",
-		"2010/01/31/23",
-		"2010/02/28/23",
-		"2010/03/31/23",
-		"2010/04/30/23",
-		"2010/05/31/23",
-		"2010/06/30/23",
-		"2010/07/31/23",
-		"2010/08/31/23",
-		"2010/09/30/23",
-		"2010/10/31/23",
-		"2010/11/30/23",
+		"2009/12/31/23/56",
+		"2010/01/31/23/56",
+		"2010/02/28/23/56",
+		"2010/03/31/23/56",
+		"2010/04/30/23/56",
+		"2010/05/31/23/56",
+		"2010/06/30/23/56",
+		"2010/07/31/23/56",
+		"2010/08/31/23/56",
+		"2010/09/30/23/56",
+		"2010/10/31/23/56",
+		"2010/11/30/23/56",
 		// weekly
-		"2010/12/04/23",
-		"2010/12/11/23",
-		"2010/12/18/23",
+		"2010/12/04/23/56",
+		"2010/12/11/23/56",
+		"2010/12/18/23/56",
 		// daily
-		"2010/12/24/23",
-		"2010/12/25/23",
-		"2010/12/26/23",
-		"2010/12/27/23",
-		"2010/12/28/23",
-		"2010/12/29/23",
+		"2010/12/24/23/56",
+		"2010/12/25/23/56",
+		"2010/12/26/23/56",
+		"2010/12/27/23/56",
+		"2010/12/28/23/56",
+		"2010/12/29/23/56",
 		// hourly
-		"2010/12/30/20",
-		"2010/12/30/21",
-		"2010/12/30/22",
-		"2010/12/30/23",
-		"2010/12/31/00",
-		"2010/12/31/01",
-		"2010/12/31/02",
-		"2010/12/31/03",
-		"2010/12/31/04",
-		"2010/12/31/05",
-		"2010/12/31/06",
-		"2010/12/31/07",
-		"2010/12/31/08",
-		"2010/12/31/09",
-		"2010/12/31/10",
-		"2010/12/31/11",
-		"2010/12/31/12",
-		"2010/12/31/13",
-		"2010/12/31/14",
-		"2010/12/31/15",
-		"2010/12/31/16",
-		"2010/12/31/17",
-		"2010/12/31/18",
-		"2010/12/31/19",
-		"2010/12/31/20",
-		"2010/12/31/21",
-		"2010/12/31/22",
-		"2010/12/31/23",
+		"2010/12/30/20/56",
+		"2010/12/30/21/56",
+		"2010/12/30/22/56",
+		"2010/12/30/23/56",
+		"2010/12/31/00/56",
+		"2010/12/31/01/56",
+		"2010/12/31/02/56",
+		"2010/12/31/03/56",
+		"2010/12/31/04/56",
+		"2010/12/31/05/56",
+		"2010/12/31/06/56",
+		"2010/12/31/07/56",
+		"2010/12/31/08/56",
+		"2010/12/31/09/56",
+		"2010/12/31/10/56",
+		"2010/12/31/11/56",
+		"2010/12/31/12/56",
+		"2010/12/31/13/56",
+		"2010/12/31/14/56",
+		"2010/12/31/15/56",
+		"2010/12/31/16/56",
+		"2010/12/31/17/56",
+		"2010/12/31/18/56",
+		"2010/12/31/19/56",
+		"2010/12/31/20/56",
+		"2010/12/31/21/56",
+		// minutely
+		"2010/12/31/22/49",
+		"2010/12/31/22/56",
+		"2010/12/31/23/00",
+		"2010/12/31/23/07",
+		"2010/12/31/23/14",
+		"2010/12/31/23/21",
+		"2010/12/31/23/28",
+		"2010/12/31/23/35",
+		"2010/12/31/23/42",
+		"2010/12/31/23/49",
+		"2010/12/31/23/56",
 	}
 	for k, a := range actual {
 		if e := expected[k]; a != e {

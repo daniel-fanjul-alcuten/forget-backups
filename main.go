@@ -52,14 +52,24 @@ func (fs *filesort) Swap(i, j int) {
 }
 
 type moment struct {
-	year  int
-	month time.Month
-	day   int
-	hour  int
+	year   int
+	month  time.Month
+	day    int
+	hour   int
+	minute int
 }
 
 func (m moment) time() time.Time {
-	return time.Date(m.year, m.month, m.day, m.hour, 0, 0, 0, time.UTC)
+	return time.Date(m.year, m.month, m.day, m.hour, m.minute, 0, 0, time.UTC)
+}
+
+func (m moment) byMinute() moment {
+	if m.minute > 0 {
+		m.minute--
+		return m
+	}
+	m.minute = 59
+	return m.byHour()
 }
 
 func (m moment) byHour() moment {
@@ -119,9 +129,20 @@ type policy interface {
 	next(moment) moment
 }
 
+type minutely struct{}
+
+func (minutely) first(m moment) moment {
+	return m
+}
+
+func (minutely) next(m moment) moment {
+	return m.byMinute()
+}
+
 type hourly struct{}
 
 func (hourly) first(m moment) moment {
+	m.minute = 0
 	return m
 }
 
@@ -132,6 +153,7 @@ func (hourly) next(m moment) moment {
 type daily struct{}
 
 func (daily) first(m moment) moment {
+	m.minute = 0
 	m.hour = 0
 	return m
 }
@@ -143,6 +165,7 @@ func (daily) next(m moment) moment {
 type weekly struct{}
 
 func (weekly) first(m moment) moment {
+	m.minute = 0
 	m.hour = 0
 	for d := m.time().Weekday() - time.Sunday; d > 0; d-- {
 		m = m.byDay()
@@ -160,6 +183,7 @@ func (weekly) next(m moment) moment {
 type monthly struct{}
 
 func (monthly) first(m moment) moment {
+	m.minute = 0
 	m.hour = 0
 	m.day = 1
 	return m
@@ -172,6 +196,7 @@ func (monthly) next(m moment) moment {
 type yearly struct{}
 
 func (yearly) first(m moment) moment {
+	m.minute = 0
 	m.hour = 0
 	m.day = 1
 	m.month = 1
@@ -195,6 +220,7 @@ func selectFiles(s map[string]file, fs []file, p policy, q int) {
 	var m moment
 	m.year, m.month, m.day = f.time.Date()
 	m.hour = f.time.Hour()
+	m.minute = f.time.Minute()
 	m = p.first(m)
 
 	for i := 0; i < q; i++ {
@@ -223,6 +249,7 @@ func main() {
 	log.SetFlags(0)
 
 	const factor = 3
+	minutes := flag.Int("minutes", factor*60, "it keeps the latest backup for each minute, for the given number of minutes")
 	hours := flag.Int("hours", factor*24, "it keeps the latest backup for each hour, for the given number of hours")
 	days := flag.Int("days", factor*7, "it keeps the latest backup for each day, for the given number of days")
 	weeks := flag.Int("weeks", factor*4, "it keeps the latest backup for each week, for the given number of weeks")
@@ -245,6 +272,7 @@ func main() {
 	sort.Sort(&fs)
 
 	s := make(map[string]file)
+	selectFiles(s, fs, minutely{}, *minutes)
 	selectFiles(s, fs, hourly{}, *hours)
 	selectFiles(s, fs, daily{}, *days)
 	selectFiles(s, fs, weekly{}, *weeks)
